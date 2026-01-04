@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECCPMS - Master Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&family=Great+Vibes&family=Courier+Prime:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* LOADING SPINNER */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        /* --- PROFESSIONAL PDF STYLING (UPDATED FOR 1 PAGE) --- */
+        .pdf-container {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            /* Padding එක 20mm සිට 15mm දක්වා අඩු කලා - ඉඩ ඉතිරි කරගන්න */
+            padding: 15mm;
+            position: relative;
+            box-sizing: border-box;
+            font-family: 'Times New Roman', serif;
+            color: #1a1a1a;
+            border: 1px solid #eee;
+        }
+
+        /* Header Section */
+        .letter-header {
+            border-bottom: 2px solid #b91c1c;
+            /* Header එකේ යට ඉඩ 15px සිට 5px ට අඩු කලා */
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            /* 30px සිට අඩු කලා */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20pt;
+            /* අකුරු ප්‍රමාණය පොඩ්ඩක් අඩු කලා */
+            font-weight: bold;
+            color: #1a1a1a;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .header-text p {
+            font-size: 9pt;
+            color: #555;
+            margin: 2px 0 0 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .top-badge {
+            width: 50px;
+            /* Badge එක පොඩි කලා */
+            height: 50px;
+            background: #b91c1c;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 7px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 2px solid #fee2e2;
+        }
+
+        /* Content */
+        .ref-block {
+            font-family: 'Courier Prime', monospace;
+            font-size: 9pt;
+            margin-bottom: 10px;
+            /* පරතරය අඩු කලා */
+            text-align: right;
+        }
+
+        .recipient-block {
+            margin-bottom: 15px;
+            /* පරතරය අඩු කලා */
+            font-size: 10pt;
+            line-height: 1.3;
+        }
+
+        .subject-line {
+            font-weight: bold;
+            font-size: 11pt;
+            text-decoration: underline;
+            margin-bottom: 15px;
+            /* පරතරය අඩු කලා */
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .body-paragraph {
+            font-size: 10.5pt;
+            /* අකුරු ප්‍රමාණය ගැලපෙන ලෙස හැදුවා */
+            line-height: 1.4;
+            /* පේළි අතර පරතරය අඩු කලා */
+            margin-bottom: 10px;
+            /* ඡේද අතර පරතරය අඩු කලා */
+            text-align: justify;
+        }
+
+        /* Credentials Box */
+        .credentials-box {
+            background-color: #f8fafc;
+            border: 1px dashed #64748b;
+            padding: 10px 15px;
+            /* Box එකේ ඇතුලත ඉඩ අඩු කලා */
+            margin: 10px 0;
+            /* Box එක වටා ඉඩ අඩු කලා */
+            border-radius: 4px;
+        }
+
+        .cred-title {
+            font-weight: bold;
+            font-size: 9pt;
+            color: #0f172a;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .cred-item {
+            font-family: 'Courier Prime', monospace;
+            font-size: 10pt;
+            margin-bottom: 2px;
+        }
+
+        /* Signatures - ඔයා අහපු Signature එකේ ගැටලුව මෙතන විසඳලා තියෙන්නේ */
+        .signatures-grid {
+            /* මෙන්න මෙතන margin-top එක 50px තිබුනා, දැන් 10px කලා. ඒකෙන් ලොකු පරතරය නැති වෙනවා. */
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            position: relative;
+        }
+
+        .sign-block {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .sign-img {
+            font-family: 'Great Vibes', cursive;
+            font-size: 12pt;
+            /* අත්සන ටිකක් ලොකු කලා */
+            color: #000;
+            height: 30px;
+            /* උස 40px සිට 30px ට අඩු කලා - ඒකෙන් ඉරට ළං වෙනවා */
+            display: flex;
+            align-items: flex-end;
+            /* අත්සන පහලට ගත්තා */
+            justify-content: center;
+        }
+
+        .sign-name {
+            font-weight: bold;
+            font-size: 9pt;
+            border-top: 1px solid #999;
+            padding-top: 2px;
+            margin-top: 2px;
+            /* ඉර සහ අකුරු අතර පරතරය අඩු කලා */
+        }
+
+        .sign-title {
+            font-size: 8pt;
+            color: #555;
+            font-style: italic;
+        }
+
+        /* Red Official Seal */
+        .official-seal {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-15deg);
+            width: 80px;
+            /* Seal එක ටිකක් පොඩි කලා */
+            height: 80px;
+            border: 3px double #b91c1c;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #b91c1c;
+            font-weight: bold;
+            font-size: 9pt;
+            text-align: center;
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .official-seal span {
+            font-size: 7px;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            /* Footer එකේ පරතරය 50px සිට 20px ට අඩු කලා */
+            font-size: 7pt;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 min-h-screen">
+
+    <div id="loading-overlay" class="hidden">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-white font-mono text-xs mt-2">PROCESSING REQUEST...</p>
+    </div>
+
+    <div id="login-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+        <div class="w-full max-w-sm p-6 bg-gray-800 rounded-xl border border-gray-700 text-center">
+            <h1 class="text-2xl font-bold text-white mb-1">MASTER ACCESS</h1>
+            <p class="text-gray-400 text-xs mb-6">ECCPMS SYSTEM KERNEL</p>
+            <form id="authForm" class="space-y-3">
+                <input type="text" id="inputId"
+                    class="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white text-sm outline-none focus:border-blue-500"
+                    placeholder="Identity">
+                <input type="password" id="inputPass"
+                    class="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white text-sm outline-none focus:border-blue-500"
+                    placeholder="Passphrase">
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded transition text-sm">AUTHENTICATE</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden min-h-screen bg-gray-100 flex flex-col">
+        <nav
+            class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold"><i
+                        class="fa-solid fa-code"></i></div>
+                <h1 class="text-sm font-bold text-gray-800">DEVELOPER CONSOLE</h1>
+            </div>
+            <button onclick="location.reload()" class="text-red-500 hover:bg-red-50 p-2 rounded"><i
+                    class="fa-solid fa-power-off"></i></button>
+        </nav>
+
+        <div class="flex-1 p-4 md:p-6 flex flex-col md:flex-row gap-6 max-w-7xl mx-auto w-full">
+
+            <div class="flex-1 bg-white rounded-lg shadow border border-gray-200 flex flex-col h-[85vh]">
+                <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                    <h2 class="font-bold text-gray-700 text-xs uppercase">Active Coordinator Admins</h2>
+                    <span id="activeCount"
+                        class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div id="listActive" class="flex-1 overflow-y-auto p-2 space-y-2">
+                    <p class="text-center text-gray-400 text-xs mt-10">System Ready.</p>
+                </div>
+            </div>
+
+            <div class="w-full md:w-[400px] flex flex-col gap-4">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                    <div class="bg-slate-800 p-4 text-white">
+                        <h3 class="font-bold text-sm">New Coordinator Appointment</h3>
+                        <p class="text-[10px] text-gray-400">Generates Official Letter & Credentials</p>
+                    </div>
+
+                    <div class="p-4 space-y-3">
+                        <button onclick="copyWhatsapp()"
+                            class="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded flex items-center justify-center gap-2 text-xs font-bold transition">
+                            <i class="fa-brands fa-whatsapp"></i> Copy Request Format
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="fname" placeholder="First Name"
+                                class="bg-gray-50 border rounded p-2 text-xs">
+                            <input type="text" id="lname" placeholder="Last Name"
+                                class="bg-gray-50 border rounded p-2 text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="grade" placeholder="Grade (12/13)"
+                                class="bg-gray-50 border rounded p-2 text-xs">
+                            <input type="text" id="class" placeholder="Class (A/B..)"
+                                class="bg-gray-50 border rounded p-2 text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="prefectId" placeholder="Prefect ID"
+                                class="bg-gray-50 border rounded p-2 text-xs font-mono">
+                            <input type="text" id="barcodeId" placeholder="Barcode ID"
+                                class="bg-gray-50 border rounded p-2 text-xs font-mono">
+                        </div>
+
+                        <input type="text" id="whatsapp" placeholder="WhatsApp Number"
+                            class="w-full bg-gray-50 border rounded p-2 text-xs">
+                        <input type="email" id="gmail" placeholder="Gmail Address"
+                            class="w-full bg-gray-50 border rounded p-2 text-xs">
+
+                        <button onclick="generateAndDownload()" id="btnCreate"
+                            class="w-full bg-blue-700 hover:bg-blue-800 text-white py-3 rounded text-xs font-bold transition flex items-center justify-center gap-2 shadow-md">
+                            <i class="fa-solid fa-file-contract"></i> SAVE & DOWNLOAD LETTER
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                <div class="bg-indigo-800 p-4 text-white">
+                    <h3 class="font-bold text-sm">Push Notification Center</h3>
+                    <p class="text-[10px] text-gray-400">Broadcast messages to all mobile users</p>
+                </div>
+
+                <div class="p-4 space-y-3">
+                    <input type="text" id="notifTitle" placeholder="Notification Title"
+                        class="bg-gray-50 border rounded p-2 text-xs font-bold w-full">
+                    <textarea id="notifBody" rows="3" placeholder="Message Body"
+                        class="bg-gray-50 border rounded p-2 text-xs w-full"></textarea>
+
+                    <button onclick="sendBroadcast()" id="btnSendNotif"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded text-xs font-bold transition flex items-center justify-center gap-2 shadow-md">
+                        <i class="fa-solid fa-paper-plane"></i> SEND BROADCAST
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RELEASE MANAGER CARD -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden mt-4">
+            <div class="bg-teal-800 p-4 text-white">
+                <h3 class="font-bold text-sm">Release Manager</h3>
+                <p class="text-[10px] text-gray-400">Publish "What's New" notes to mobile users</p>
+            </div>
+
+            <div class="p-4 space-y-3">
+                <div class="flex gap-2">
+                    <input type="text" id="relVersion" placeholder="Version (e.g. 1.0.5)"
+                        class="bg-gray-50 border rounded p-2 text-xs font-mono w-1/3">
+                    <input type="text" id="relLink" placeholder="Update Link (Optional)"
+                        class="bg-gray-50 border rounded p-2 text-xs w-2/3">
+                </div>
+                <input type="text" id="relTitle" placeholder="Update Title (e.g. Push Notifications)"
+                    class="bg-gray-50 border rounded p-2 text-xs font-bold w-full">
+                <textarea id="relBody" rows="3" placeholder="Feature List / Description"
+                    class="bg-gray-50 border rounded p-2 text-xs w-full"></textarea>
+
+                <button onclick="publishRelease()"
+                    class="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded text-xs font-bold transition flex items-center justify-center gap-2 shadow-md">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> PUBLISH RELEASE NOTE
+                </button>
+            </div>
+        </div>
+
+    </div>
+    </div>
+    </div>
+
+    <div style="position: fixed; left: -9999px; top: 0;">
+        <div id="pdf-template" class="pdf-container">
+
+            <div class="letter-header">
+                <div class="header-text">
+                    <h1>ECCPMS Development</h1>
+                    <p>Prefect Management System Core Division</p>
+                </div>
+                <div class="top-badge">
+                    ECCPMS<br>DEV
+                </div>
+            </div>
+
+            <div class="ref-block">
+                REF: DEV/APPT/<span id="p_ref_year">2026</span>/00<span id="p_ref_rand">1</span><br>
+                DATE: <span id="p_date"></span>
+            </div>
+
+            <div class="recipient-block">
+                To: <span id="p_fullname" class="font-bold"></span>,<br>
+                Prefect ID: <span id="p_prefectid"></span>,<br>
+                Grade <span id="p_grade"></span>-<span id="p_class"></span>.
+            </div>
+
+            <div class="subject-line">
+                APPOINTMENT AS COORDINATOR ADMIN - PMS DEVELOPER TEAM
+            </div>
+
+            <div class="body-paragraph">
+                Dear <span id="p_firstname"></span>,
+            </div>
+
+            <div class="body-paragraph">
+                We are pleased to officially appoint you as a <b>Coordinator Admin</b> of the Prefect Management System
+                (PMS) Development Team. Your selection for this role reflects our confidence in your technical potential
+                and your dedication to the Prefect Guild.
+            </div>
+
+            <div class="body-paragraph">
+                As a Coordinator Admin, you are granted authorized access to the system's administrative core. We warmly
+                welcome you to the team and look forward to your valuable contribution towards the digital advancement
+                of our institution.
+            </div>
+
+            <div class="credentials-box">
+                <div class="cred-title">OFFICIAL LOGIN CREDENTIALS (CONFIDENTIAL)</div>
+                <div class="cred-item"><b>Portal:</b> Master Console App</div>
+                <div class="cred-item"><b>Identity (Email):</b> <span id="p_gen_email"></span></div>
+                <div class="cred-item"><b>Passphrase:</b> <span id="p_gen_pass"></span></div>
+            </div>
+
+            <div class="body-paragraph">
+                Please ensure these credentials are kept secure. Unauthorized sharing of access keys is strictly
+                prohibited under the Developer Guidelines.
+            </div>
+
+            <div class="body-paragraph">
+                Congratulations on your appointment.
+            </div>
+
+            <div class="signatures-grid">
+                <div class="sign-block">
+                    <div class="sign-img">Hansaka F.</div>
+                    <div class="sign-name">Hansaka Fernando</div>
+                    <div class="sign-title">Commander (Lead Developer)</div>
+                </div>
+                <div class="sign-block">
+                    <div class="sign-img">Adeesha R.</div>
+                    <div class="sign-name">Adeesha Ravimal</div>
+                    <div class="sign-title">Ops Chief (Backend)</div>
+                </div>
+                <div class="sign-block">
+                    <div class="sign-img">Roshni J.</div>
+                    <div class="sign-name">Rashmi Jananjana</div>
+                    <div class="sign-title">Strategist (Analyst)</div>
+                </div>
+                <div class="sign-block">
+                    <div class="sign-img">Netlimi D.</div>
+                    <div class="sign-name">Nethmi Dhananjana</div>
+                    <div class="sign-title">Intel Officer (QA)</div>
+                </div>
+
+                <div class="official-seal">
+                    ECCPMS<br><span>OFFICIAL</span><br>SEAL
+                </div>
+            </div>
+
+            <div class="footer-note">
+                Generated by ECCPMS Kernel | This document is electronically authorized.
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, doc, setDoc, addDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEvF1sD56pmtYlbno4QAY_Kr5xeFrTAvU",
+            authDomain: "prefect-management-syste-e1575.firebaseapp.com",
+            projectId: "prefect-management-syste-e1575",
+            storageBucket: "prefect-management-syste-e1575.firebasestorage.app",
+            messagingSenderId: "973932803095",
+            appId: "1:973932803095:web:a7f2db386cafb53330d852",
+            measurementId: "G-FLF7R3B8J3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+        const secondaryAuth = getAuth(secondaryApp);
+
+        // --- AUTH ---
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('inputId').value;
+            const pass = document.getElementById('inputPass').value;
+
+            if (id === "2589" && pass === "hansaka") {
+                document.getElementById('login-gate').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                signInAnonymously(auth).then(loadData).catch(e => console.log("Offline mode"));
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, id, pass);
+                document.getElementById('login-gate').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                loadData();
+            } catch (error) {
+                alert("Incorrect Credentials");
+            }
+        });
+
+        // --- BROADCAST NOTIFICATION (FIRESTORE) ---
+        window.sendBroadcast = async () => {
+            const title = document.getElementById('notifTitle').value.trim();
+            const body = document.getElementById('notifBody').value.trim();
+
+            if (!title || !body) { alert("Please enter title and body!"); return; }
+            if (!confirm("Are you sure you want to send this to ALL users?")) return;
+
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+
+            try {
+                // Save to Firestore 'mail_box' collection
+                // The Mobile App listens to this collection in real-time
+                await addDoc(collection(db, "mail_box"), {
+                    title: title,
+                    body: body,
+                    timestamp: new Date(),
+                    target: "all",
+                    viewedBy: [] // Track who saw it
+                });
+
+                alert("Notification Sent Successfully (Saved to Database)!");
+                document.getElementById('notifTitle').value = "";
+                document.getElementById('notifBody').value = "";
+
+            } catch (e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            } finally {
+                overlay.classList.add('hidden');
+            }
+        };
+
+        // --- PUBLISH RELEASE NOTE ---
+        window.publishRelease = async () => {
+            const version = document.getElementById('relVersion').value.trim();
+            const link = document.getElementById('relLink').value.trim();
+            const title = document.getElementById('relTitle').value.trim();
+            const body = document.getElementById('relBody').value.trim();
+
+            if (!version || !title || !body) { alert("Please fill Version, Title, and Description!"); return; }
+
+            if (!confirm(`Publish Update Note for v${version}?`)) return;
+
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+
+            try {
+                await setDoc(doc(db, "system_metadata", "latest_release"), {
+                    version: version,
+                    link: link, // Save the Update Link
+                    title: title,
+                    body: body,
+                    publishedAt: new Date()
+                });
+
+                alert("Release Note Published Successfully!");
+                document.getElementById('relVersion').value = "";
+                document.getElementById('relLink').value = "";
+                document.getElementById('relTitle').value = "";
+                document.getElementById('relBody').value = "";
+            } catch (e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            } finally {
+                overlay.classList.add('hidden');
+            }
+        };
+
+        // --- NEW WHATSAPP FORMAT ---
+        window.copyWhatsapp = () => {
+            const text = `🛑 *ECCPMS DEVELOPER TEAM - REGISTRATION* 🛑\n\nFill this details to join Developer Team :\n\n1️⃣. *First Name:* _Dammika_\n2️⃣. *Last Name:* _Perera_\n3️⃣. *Grade:* _13_\n4️⃣. *Class:* _B_\n5️⃣. *Prefect ID:* _986_\n6️⃣. *Barcode ID:* _986-586932_\n7️⃣. *WhatsApp No:* _0779912589_\n8️⃣. *Gmail:* _dammikaperera@gmail.com_\n\n\nEdit this message and send it .`;
+            navigator.clipboard.writeText(text).then(() => alert("Request Format Copied!"));
+        };
+
+        // --- GENERATE & DOWNLOAD ---
+        window.generateAndDownload = async () => {
+            // 1. Get Values
+            const fname = document.getElementById('fname').value.trim();
+            const lname = document.getElementById('lname').value.trim();
+            const grade = document.getElementById('grade').value.trim();
+            const cls = document.getElementById('class').value.trim();
+            const prefectId = document.getElementById('prefectId').value.trim();
+            const barcodeId = document.getElementById('barcodeId').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            const gmail = document.getElementById('gmail').value.trim();
+
+            if (!fname || !barcodeId || !gmail) { alert("Please fill all required fields!"); return; }
+
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+
+            // 2. Generate Fake Credentials
+            const generatedEmail = `pmsadmin${fname.toLowerCase()}@developer.eccpms.com`;
+            const generatedPass = `Admin${lname.toLowerCase()}@${barcodeId.slice(-4)}`; // Password uses last 4 digits of barcode
+
+            try {
+                // 3. Create User in Firebase
+                const cred = await createUserWithEmailAndPassword(secondaryAuth, generatedEmail, generatedPass);
+
+                // 4. Save to Database with ALL new fields
+                await setDoc(doc(db, "hpfadminformobileapp", cred.user.uid), {
+                    fullName: `${fname} ${lname}`, firstName: fname, lastName: lname,
+                    grade: grade, class: cls,
+                    prefectId: prefectId, barcodeId: barcodeId,
+                    whatsapp: whatsapp, personalGmail: gmail, // Saved purely for record
+                    email: generatedEmail, generatedPass: generatedPass,
+                    role: "Coordinator Admin", status: "approved",
+                    createdAt: new Date()
+                });
+
+                secondaryAuth.signOut();
+
+                // 5. Populate PDF
+                document.getElementById('p_date').innerText = new Date().toLocaleDateString('en-GB');
+                document.getElementById('p_ref_year').innerText = new Date().getFullYear();
+                document.getElementById('p_ref_rand').innerText = Math.floor(Math.random() * 900) + 100;
+
+                document.getElementById('p_fullname').innerText = `${fname} ${lname}`;
+                document.getElementById('p_firstname').innerText = fname;
+                document.getElementById('p_prefectid').innerText = prefectId || "N/A";
+                document.getElementById('p_grade').innerText = grade;
+                document.getElementById('p_class').innerText = cls;
+
+                document.getElementById('p_gen_email').innerText = generatedEmail;
+                document.getElementById('p_gen_pass').innerText = generatedPass;
+
+                // 6. Download PDF
+                const element = document.getElementById('pdf-template');
+                const opt = {
+                    margin: 0,
+                    filename: `Appointment_${fname}_${prefectId}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().set(opt).from(element).save();
+
+                // 7. Cleanup
+                overlay.classList.add('hidden');
+                alert("Success! Account Created & Letter Downloaded.");
+
+                // Clear inputs
+                const inputs = document.querySelectorAll('input');
+                inputs.forEach(i => i.value = '');
+
+            } catch (e) {
+                overlay.classList.add('hidden');
+                console.error(e);
+                alert("Error: " + e.message);
+            }
+        };
+
+        // --- LOAD DATA ---
+        function loadData() {
+            onSnapshot(query(collection(db, "hpfadminformobileapp"), where("status", "==", "approved")), (snap) => {
+                const list = document.getElementById('listActive');
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const u = d.data();
+                    list.innerHTML += `
+                    <div class="p-3 border-b flex justify-between items-center hover:bg-gray-50">
+                        <div>
+                            <div class="font-bold text-sm text-gray-800">${u.fullName}</div>
+                            <div class="text-[10px] text-gray-500">${u.email}</div>
+                            <div class="text-[9px] text-gray-400">ID: ${u.prefectId} | ${u.personalGmail}</div>
+                        </div>
+                        <button onclick="deleteUser('${d.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+                });
+            });
+        }
+
+        window.deleteUser = async (id) => {
+            if (confirm("Are you sure you want to remove this admin? This cannot be undone.")) {
+                await deleteDoc(doc(db, "hpfadminformobileapp", id));
+            }
+        }
+    </script>
+</body>
+
+</html>
